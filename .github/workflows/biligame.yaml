@@ -24,7 +24,7 @@ jobs:
           GAME_NAME=$(jq -r '.data.title' gameinfo.json)
           APK_LINK1=$(jq -r '.data.android_download_link' gameinfo.json)
           APK_LINK2=$(jq -r '.data.android_download_link2' gameinfo.json)
-          VERSION=$(echo "$APK_LINK1" | sed -n 's/.*_\([0-9.]\+\)_.*/\1/p')
+          VERSION=$(echo "$APK_LINK1" | sed -n 's#.*/games/[^_]*_\([^/]*\)\.apk.*#\1#p')
 
           echo "Game Name: $GAME_NAME"
           echo "Version: $VERSION"
