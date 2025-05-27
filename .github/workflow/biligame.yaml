@@ -1,0 +1,58 @@
+name: Fetch Game Info and Download APK
+
+on:
+  workflow_dispatch:
+
+jobs:
+  fetch-and-download:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Fetch game info JSON
+        id: fetch_json
+        run: |
+          echo "Fetching JSON data..."
+          curl -s -o gameinfo.json "https://line1-h5-pc-api.biligame.com/game/detail/gameinfo?game_base_id=111995"
+          cat gameinfo.json
+
+      - name: Extract game name, version, and download links
+        id: extract_info
+        run: |
+          # Parse JSON and extract fields using jq
+          GAME_NAME=$(jq -r '.data.title' gameinfo.json)
+          APK_LINK1=$(jq -r '.data.android_download_link' gameinfo.json)
+          APK_LINK2=$(jq -r '.data.android_download_link2' gameinfo.json)
+          VERSION=$(echo "$APK_LINK1" | sed -n 's/.*_\([0-9.]\+\)_.*/\1/p')
+
+          echo "Game Name: $GAME_NAME"
+          echo "Version: $VERSION"
+          echo "Download Link 1: $APK_LINK1"
+          echo "Download Link 2: $APK_LINK2"
+
+          # Set as GitHub Actions output
+          echo "game_name=$GAME_NAME" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "apk_link1=$APK_LINK1" >> $GITHUB_OUTPUT
+          echo "apk_link2=$APK_LINK2" >> $GITHUB_OUTPUT
+
+      - name: Download APK from Link 1
+        id: download_apk
+        run: |
+          echo "Trying to download APK from Link 1..."
+          curl -L --fail -o game.apk "${{ steps.extract_info.outputs.apk_link1 }}" && echo "Download succeeded." || echo "Download failed."
+          
+          # Check if file exists and is non-zero size
+          if [ -s "game.apk" ]; then
+            echo "Download from link 1 successful."
+          else
+            echo "Download failed or file is empty."
+            exit 1
+          fi
+
+      - name: Upload APK to GitHub Actions artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.extract_info.outputs.game_name }}-${{ steps.extract_info.outputs.version }}.apk
+          path: game.apk
