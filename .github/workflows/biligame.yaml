@@ -40,8 +40,13 @@ jobs:
       - name: Download APK from Link 1
         id: download_apk
         run: |
-          echo "Trying to download APK from Link 1..."
-          curl -L --fail -o game.apk "${{ steps.extract_info.outputs.apk_link1 }}" && echo "Download succeeded." || echo "Download failed."
+          echo "Trying to download APK from Link 1 with custom headers..."
+          curl -L --fail \
+            -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
+            -H "Accept: */*" \
+            -H "Referer: https://www.biligame.com/" \
+            -o game.apk \
+            "${{ steps.extract_info.outputs.apk_link1 }}" && echo "Download succeeded." || echo "Download failed."
           
           # Check if file exists and is non-zero size
           if [ -s "game.apk" ]; then
