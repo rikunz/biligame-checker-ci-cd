@@ -37,7 +37,7 @@ jobs:
           echo "apk_link1=$APK_LINK1" >> $GITHUB_OUTPUT
           echo "apk_link2=$APK_LINK2" >> $GITHUB_OUTPUT
 
-      - name: Download APK from Link 1
+      - name: Download APK with fallback
         id: download_apk
         run: |
           echo "Trying to download APK from Link 1 with custom headers..."
@@ -46,11 +46,22 @@ jobs:
             -H "Accept: */*" \
             -H "Referer: https://www.biligame.com/" \
             -o game.apk \
-            "${{ steps.extract_info.outputs.apk_link1 }}" && echo "Download succeeded." || echo "Download failed."
-          
+            "${{ steps.extract_info.outputs.apk_link1 }}" && echo "Download from Link 1 succeeded." || {
+              echo "Download from Link 1 failed. Trying Link 2..."
+              curl -L --fail \
+                -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
+                -H "Accept: */*" \
+                -H "Referer: https://www.biligame.com/" \
+                -o game.apk \
+                "${{ steps.extract_info.outputs.apk_link2 }}" && echo "Download from Link 2 succeeded." || {
+                  echo "Both download links failed."
+                  exit 1
+                }
+            }
+
           # Check if file exists and is non-zero size
           if [ -s "game.apk" ]; then
-            echo "Download from link 1 successful."
+            echo "APK download successful."
           else
             echo "Download failed or file is empty."
             exit 1
@@ -59,5 +70,5 @@ jobs:
       - name: Upload APK to GitHub Actions artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ steps.extract_info.outputs.game_name }}-${{ steps.extract_info.outputs.version }}.apk
+          name: PJSK-CN-${{ steps.extract_info.outputs.version }}.apk
           path: game.apk
